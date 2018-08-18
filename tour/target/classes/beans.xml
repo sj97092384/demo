@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/aop
+     	http://www.springframework.org/schema/aop/spring-aop.xsd
+     	http://www.springframework.org/schema/tx
+    	http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+	<!-- spring 包扫描 -->
+	<context:component-scan base-package="com.yc"></context:component-scan>
+
+	<!-- spring mvc 配置 -->
+	<!-- spring mvc视图解析器 -->
+	<bean id="jspViewResolver"
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="viewClass"
+			value="org.springframework.web.servlet.view.JstlView" />
+		<property name="prefix" value="/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+	<!-- 静态处理问题 -->
+	<mvc:default-servlet-handler />
+	<!-- mvc注解驱动 -->
+	<mvc:annotation-driven />
+	
+	<aop:aspectj-autoproxy />
+	<!-- 数据源 -->
+	<bean id="dataSource"
+		class="org.apache.commons.dbcp2.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName"
+			value="com.mysql.jdbc.Driver" />
+		<property name="url"
+			value="jdbc:mysql://sj/tour?useUnicode=true&amp;characterEncoding=UTF-8" />
+		<property name="username" value="root" />
+		<property name="password" value="a" />
+	</bean>
+	
+	<!-- 
+	创建mybatis会话工厂 加载配置的方法：
+	1、直接读取mybatis配置文件（数据源、mapper）
+	2、直接在bean中配置
+	 -->
+	<bean id="sqlSessionFactory"
+		class="org.mybatis.spring.SqlSessionFactoryBean">
+		<!-- 数据源 -->
+		<property name="dataSource" ref="dataSource"></property>
+		<!-- mapper -->
+		<!-- <property name="mapperLocations" value="com/yc/favorite/dao/*.xml"></property> -->
+	</bean>
+	
+	<!-- 配置mybatis数据访问接口 -->
+	<!-- 方案二：统一配置接口 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com/yc/tour/dao"></property>
+	</bean>
+	
+	<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<!-- 所有get开关的方法 -->
+			<tx:method name="get*" read-only="true"/>
+			<tx:method name="find*" read-only="true"/>
+			<!-- 其它所有的方法 -->
+			<tx:method name="*" isolation="DEFAULT" timeout="-1"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<aop:config>
+		<aop:pointcut id="txA" expression="execution(* com.yc.tour.biz.*.*(..))"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txA"/>
+	</aop:config>
+
+</beans>
